@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import joi from "joi";
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
+import dayjs from "dayjs";
 
 const app = express();
 app.use(express.json());
@@ -84,8 +85,11 @@ app.post("/signin", async (req, res) => {
   }
   try {
     const user = await db.collection("signup").findOne({ email });
+    if (!user) {
+      return res.status(401).send("Email ou senha inválidos!");
+    }
     const correctPassword = bcrypt.compareSync(password, user.password);
-    if (!user || !correctPassword) {
+    if (!correctPassword) {
       return res.status(401).send("Email ou senha inválidos!");
     }
     const token = uuid();
@@ -94,7 +98,7 @@ app.post("/signin", async (req, res) => {
       userId: user._id,
       token,
     });
-    res.status(201).send("login ok"); //trocar
+    res.status(201).send(token);
   } catch (error) {
     res.status(500).send(error.message);
   }
@@ -102,6 +106,9 @@ app.post("/signin", async (req, res) => {
 
 app.post("/input", async (req, res) => {
   const { value, description } = req.body;
+  const { authorization } = req.headers;
+  const token = authorization?.replace("Bearer ", "");
+
   const validation = transactionSchema.validate(req.body, {
     abortEarly: false,
   });
@@ -113,9 +120,25 @@ app.post("/input", async (req, res) => {
   if (value.includes(" ")) {
     return res.status(422).send("Digite o número corretamente!");
   }
-  await db.collection("input").insertOne({
+  if (!token) return res.status(401).send("sem o token"); //trocar
+  const session = await db.collection("sessions").findOne({ token });
+  console.log(session.token); //excluir
+
+  if (!session) return res.status(401).send("token não encontrado no db"); //trocar
+
+  const user = await db.collection("signup").findOne({
+    _id: session.userId,
+  });
+  console.log(user); //excluir
+
+  if (!user) return res.status(401).send("user não encontrado no db"); //trocar
+
+  await db.collection("transactions").insertOne({
     value,
     description,
+    date: dayjs().format("DD/MM"),
+    type: "input",
+    user: user._id,
   });
 
   res.sendStatus(201);
@@ -123,6 +146,9 @@ app.post("/input", async (req, res) => {
 
 app.post("/output", async (req, res) => {
   const { value, description } = req.body;
+  const { authorization } = req.headers;
+  const token = authorization?.replace("Bearer ", "");
+
   const validation = transactionSchema.validate(req.body, {
     abortEarly: false,
   });
@@ -134,9 +160,23 @@ app.post("/output", async (req, res) => {
   if (value.includes(" ")) {
     return res.status(422).send("Digite o número corretamente!");
   }
-  await db.collection("output").insertOne({
+  if (!token) return res.status(401).send("sem o token"); //trocar
+  const session = await db.collection("sessions").findOne({ token });
+
+  if (!session) return res.status(401).send("token não encontrado no db"); //trocar
+
+  const user = await db.collection("signup").findOne({
+    _id: session.userId,
+  });
+
+  if (!user) return res.status(401).send("user não encontrado no db"); //trocar
+
+  await db.collection("transactions").insertOne({
     value,
     description,
+    date: dayjs().format("DD/MM"),
+    type: "output",
+    user: user._id,
   });
 
   res.sendStatus(201);
@@ -148,14 +188,21 @@ app.get("/myprofile", async (req, res) => {
 
   if (!token) return res.status(401).send("sem o token"); //trocar
   const session = await db.collection("sessions").findOne({ token });
+  console.log(session.token); //excluir
+
   if (!session) return res.status(401).send("token não encontrado no db"); //trocar
 
   const user = await db.collection("signup").findOne({
     _id: session.userId,
   });
 
-  if (!user) return res.status(401).send("user não encontrado no db");
-  res.status(201).send("belezinhas"); //trocar
+  if (!user) return res.status(401).send("user não encontrado no db"); //trocar
+  const transactionsList = await db
+    .collection("transactions")
+    .find({ user: user._id })
+    .toArray();
+
+  res.status(201).send(transactionsList); //trocar
 });
 
 app.listen(5000, () => {
