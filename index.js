@@ -192,10 +192,23 @@ app.post("/output", async (req, res) => {
   }
 });
 
+app.post("/testando", async (req, res) => {
+  const { teste1, teste2 } = req.body;
+  try {
+    await db.collection("testando").insertOne({
+      teste1,
+      teste2,
+    });
+    res.sendStatus(201);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
 app.get("/myprofile", async (req, res) => {
   const { authorization } = req.headers;
   const token = authorization?.replace("Bearer ", "");
-
+  console.log(token);
   if (!token) return res.status(401).send("sem o token"); //trocar
   const session = await db.collection("sessions").findOne({ token });
   console.log(session.token); //excluir
