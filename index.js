@@ -40,14 +40,14 @@ app.post("/signup", async (req, res) => {
   const validation = signUpSchema.validate(req.body, { abortEarly: false });
   if (validation.error) {
     const err = validation.error.details.map((err) => err.message);
-    res.status(422).send(err);
+    res.status(422).send("Preencha os campos corretamente!");
     return;
   }
 
   try {
     const existingEmail = await db.collection("signup").findOne({ email });
     if (existingEmail) {
-      return res.status(409).send("Email já existente!"); //trocar
+      return res.status(409).send("Email ou senha inválidos!"); //trocar
     }
 
     if (password !== confirmPassword) {
@@ -60,7 +60,7 @@ app.post("/signup", async (req, res) => {
     );
 
     if (existingPassword.length !== 0) {
-      return res.status(409).send("Senha já existente"); //trocar
+      return res.status(409).send("Email ou senha inválidos!"); //trocar
     }
 
     const passwordHash = bcrypt.hashSync(password, 10);
@@ -80,7 +80,7 @@ app.post("/signin", async (req, res) => {
   const validation = signInSchema.validate(req.body, { abortEarly: false });
   if (validation.error) {
     const err = validation.error.details.map((err) => err.message);
-    res.status(422).send(err);
+    res.status(422).send("Preencha os campos corretamente!");
     return;
   }
   try {
@@ -93,12 +93,13 @@ app.post("/signin", async (req, res) => {
       return res.status(401).send("Email ou senha inválidos!");
     }
     const token = uuid();
-    console.log(correctPassword, token); //excluir
     await db.collection("sessions").insertOne({
       userId: user._id,
       token,
     });
-    res.status(201).send(token);
+    const userData = { name: user.name, token: token };
+
+    res.status(201).send(userData);
   } catch (error) {
     res.status(500).send(error.message);
   }
@@ -129,7 +130,6 @@ app.post("/input", async (req, res) => {
   const user = await db.collection("signup").findOne({
     _id: session.userId,
   });
-  console.log(user); //excluir
 
   if (!user) return res.status(401).send("user não encontrado no db"); //trocar
 
