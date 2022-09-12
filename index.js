@@ -29,6 +29,11 @@ const signInSchema = joi.object({
   password: joi.string().required().trim(),
 });
 
+const inputSchema = joi.object({
+  value: joi.number().required(),
+  description: joi.string().required().trim(),
+});
+
 app.post("/signup", async (req, res) => {
   const { name, email, password, confirmPassword } = req.body;
   const validation = signUpSchema.validate(req.body, { abortEarly: false });
@@ -41,7 +46,7 @@ app.post("/signup", async (req, res) => {
   try {
     const existingEmail = await db.collection("signup").findOne({ email });
     if (existingEmail) {
-      return res.status(409).send("Email já existente!"); //mudar send
+      return res.status(409).send("Email já existente!"); //trocar
     }
 
     if (password !== confirmPassword) {
@@ -54,7 +59,7 @@ app.post("/signup", async (req, res) => {
     );
 
     if (existingPassword.length !== 0) {
-      return res.status(409).send("Senha já existente"); //mudar send
+      return res.status(409).send("Senha já existente"); //trocar
     }
 
     const passwordHash = bcrypt.hashSync(password, 10);
@@ -93,6 +98,41 @@ app.post("/signin", async (req, res) => {
   } catch (error) {
     res.status(500).send(error.message);
   }
+});
+
+app.post("/input", async (req, res) => {
+  const { value, description } = req.body;
+  const validation = inputSchema.validate(req.body, { abortEarly: false });
+  if (validation.error) {
+    const err = validation.error.details.map((err) => err.message);
+    res.status(422).send(err);
+    return;
+  }
+  if (value.includes(" ")) {
+    return res.status(422).send("Digite o número corretamente!");
+  }
+  await db.collection("input").insertOne({
+    value,
+    description,
+  });
+
+  res.sendStatus(201);
+});
+
+app.get("/myprofile", async (req, res) => {
+  const { authorization } = req.headers;
+  const token = authorization?.replace("Bearer ", "");
+
+  if (!token) return res.status(401).send("sem o token"); //trocar
+  const session = await db.collection("sessions").findOne({ token });
+  if (!session) return res.status(401).send("token não encontrado no db"); //trocar
+
+  const user = await db.collection("signup").findOne({
+    _id: session.userId,
+  });
+
+  if (!user) return res.status(401).send("user não encontrado no db");
+  res.status(201).send("belezinhas"); //trocar
 });
 
 app.listen(5000, () => {
