@@ -1,13 +1,7 @@
 import Mongo from "../db/db.js";
 import dayjs from "dayjs";
-import joi from "joi";
-
+import { transactionSchema } from "../schemas/transactionSchema.js";
 let db = await Mongo();
-
-const transactionSchema = joi.object({
-  value: joi.number().required(),
-  description: joi.string().required().trim(),
-});
 
 export async function inputValue(req, res) {
   const { value, description } = req.body;
@@ -25,6 +19,7 @@ export async function inputValue(req, res) {
   }
 
   try {
+    const { user } = res.locals;
     await db.collection("transactions").insertOne({
       value,
       description,
@@ -55,6 +50,7 @@ export async function outputValue(req, res) {
   }
 
   try {
+    const { user } = res.locals;
     await db.collection("transactions").insertOne({
       value,
       description,
@@ -71,6 +67,7 @@ export async function outputValue(req, res) {
 
 export async function showtransactions(req, res) {
   try {
+    const { user } = res.locals;
     const transactionsList = await db
       .collection("transactions")
       .find({ user: user._id })

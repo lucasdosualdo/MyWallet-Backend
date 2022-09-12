@@ -1,21 +1,9 @@
 import Mongo from "../db/db.js";
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
-import joi from "joi";
+import { signInSchema, signUpSchema } from "../schemas/authSchema.js";
 
 let db = await Mongo();
-
-const signUpSchema = joi.object({
-  name: joi.string().required().trim(),
-  email: joi.string().required().email(),
-  password: joi.string().required().trim(),
-  confirmPassword: joi.string().required().trim(),
-});
-
-const signInSchema = joi.object({
-  email: joi.string().required().email(),
-  password: joi.string().required().trim(),
-});
 
 export async function signUpUser(req, res) {
   const { name, email, password, confirmPassword } = req.body;
