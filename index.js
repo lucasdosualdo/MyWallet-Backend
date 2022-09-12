@@ -122,26 +122,31 @@ app.post("/input", async (req, res) => {
     return res.status(422).send("Digite o número corretamente!");
   }
   if (!token) return res.status(401).send("sem o token"); //trocar
-  const session = await db.collection("sessions").findOne({ token });
-  console.log(session.token); //excluir
 
-  if (!session) return res.status(401).send("token não encontrado no db"); //trocar
+  try {
+    const session = await db.collection("sessions").findOne({ token });
+    console.log(session.token); //excluir
 
-  const user = await db.collection("signup").findOne({
-    _id: session.userId,
-  });
+    if (!session) return res.status(401).send("token não encontrado no db"); //trocar
 
-  if (!user) return res.status(401).send("user não encontrado no db"); //trocar
+    const user = await db.collection("signup").findOne({
+      _id: session.userId,
+    });
 
-  await db.collection("transactions").insertOne({
-    value,
-    description,
-    date: dayjs().format("DD/MM"),
-    type: "input",
-    user: user._id,
-  });
+    if (!user) return res.status(401).send("user não encontrado no db"); //trocar
 
-  res.sendStatus(201);
+    await db.collection("transactions").insertOne({
+      value,
+      description,
+      date: dayjs().format("DD/MM"),
+      type: "input",
+      user: user._id,
+    });
+
+    res.sendStatus(201);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
 });
 
 app.post("/output", async (req, res) => {
@@ -161,25 +166,30 @@ app.post("/output", async (req, res) => {
     return res.status(422).send("Digite o número corretamente!");
   }
   if (!token) return res.status(401).send("sem o token"); //trocar
-  const session = await db.collection("sessions").findOne({ token });
 
-  if (!session) return res.status(401).send("token não encontrado no db"); //trocar
+  try {
+    const session = await db.collection("sessions").findOne({ token });
 
-  const user = await db.collection("signup").findOne({
-    _id: session.userId,
-  });
+    if (!session) return res.status(401).send("token não encontrado no db"); //trocar
 
-  if (!user) return res.status(401).send("user não encontrado no db"); //trocar
+    const user = await db.collection("signup").findOne({
+      _id: session.userId,
+    });
 
-  await db.collection("transactions").insertOne({
-    value,
-    description,
-    date: dayjs().format("DD/MM"),
-    type: "output",
-    user: user._id,
-  });
+    if (!user) return res.status(401).send("user não encontrado no db"); //trocar
 
-  res.sendStatus(201);
+    await db.collection("transactions").insertOne({
+      value,
+      description,
+      date: dayjs().format("DD/MM"),
+      type: "output",
+      user: user._id,
+    });
+
+    res.sendStatus(201);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
 });
 
 app.get("/myprofile", async (req, res) => {
@@ -192,17 +202,21 @@ app.get("/myprofile", async (req, res) => {
 
   if (!session) return res.status(401).send("token não encontrado no db"); //trocar
 
-  const user = await db.collection("signup").findOne({
-    _id: session.userId,
-  });
+  try {
+    const user = await db.collection("signup").findOne({
+      _id: session.userId,
+    });
 
-  if (!user) return res.status(401).send("user não encontrado no db"); //trocar
-  const transactionsList = await db
-    .collection("transactions")
-    .find({ user: user._id })
-    .toArray();
+    if (!user) return res.status(401).send("user não encontrado no db"); //trocar
+    const transactionsList = await db
+      .collection("transactions")
+      .find({ user: user._id })
+      .toArray();
 
-  res.status(201).send(transactionsList); //trocar
+    res.status(201).send(transactionsList); //trocar
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
 });
 
 app.listen(5000, () => {
