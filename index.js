@@ -29,7 +29,7 @@ const signInSchema = joi.object({
   password: joi.string().required().trim(),
 });
 
-const inputSchema = joi.object({
+const transactionSchema = joi.object({
   value: joi.number().required(),
   description: joi.string().required().trim(),
 });
@@ -102,7 +102,9 @@ app.post("/signin", async (req, res) => {
 
 app.post("/input", async (req, res) => {
   const { value, description } = req.body;
-  const validation = inputSchema.validate(req.body, { abortEarly: false });
+  const validation = transactionSchema.validate(req.body, {
+    abortEarly: false,
+  });
   if (validation.error) {
     const err = validation.error.details.map((err) => err.message);
     res.status(422).send(err);
@@ -112,6 +114,27 @@ app.post("/input", async (req, res) => {
     return res.status(422).send("Digite o número corretamente!");
   }
   await db.collection("input").insertOne({
+    value,
+    description,
+  });
+
+  res.sendStatus(201);
+});
+
+app.post("/output", async (req, res) => {
+  const { value, description } = req.body;
+  const validation = transactionSchema.validate(req.body, {
+    abortEarly: false,
+  });
+  if (validation.error) {
+    const err = validation.error.details.map((err) => err.message);
+    res.status(422).send(err);
+    return;
+  }
+  if (value.includes(" ")) {
+    return res.status(422).send("Digite o número corretamente!");
+  }
+  await db.collection("output").insertOne({
     value,
     description,
   });
@@ -136,5 +159,5 @@ app.get("/myprofile", async (req, res) => {
 });
 
 app.listen(5000, () => {
-  console.log("listening on 5000 port");
+  console.log("listening on port 5000");
 });
